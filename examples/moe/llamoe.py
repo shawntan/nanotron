@@ -24,7 +24,8 @@ from flash_attn.flash_attn_interface import (
     flash_attn_with_kvcache,
 )
 from flash_attn.layers.rotary import RotaryEmbedding as FlashRotaryEmbedding
-from moe import dMoE
+from moe import dMoE, ScatterMoE
+from scattermoe.parallel_experts import ParallelExperts
 from nanotron import distributed as dist
 from nanotron import logging
 from nanotron.config import ParallelismArgs
@@ -544,12 +545,19 @@ class LlaMoEDecoderLayer(nn.Module):
         )
 
         self.post_attention_layernorm = TritonRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        if False:
+            self.block_sparse_moe = dMoE(
+                config,
+                parallel_context=parallel_context,
+                parallel_config=parallel_config,
+            )
+        else:
+            self.block_sparse_moe = ScatterMoE(
+                config,
+                parallel_context=parallel_context,
+                parallel_config=parallel_config,
+            )
 
-        self.block_sparse_moe = dMoE(
-            config,
-            parallel_context=parallel_context,
-            parallel_config=parallel_config,
-        )
 
     def forward(
         self,
@@ -901,6 +909,8 @@ class LlaMoEForTraining(NanotronModel):
                     raise ValueError(f"Who the fuck is {param_name}?")
 
             elif isinstance(module, TensorParallelEmbedding):
+                nn.init.normal_(module.weight, mean=0.0, std=std)
+            elif isinstance(module, ParallelExperts):
                 nn.init.normal_(module.weight, mean=0.0, std=std)
             else:
                 raise Exception(f"Parameter {full_param_name} was not initialized")
