@@ -56,6 +56,7 @@ class LlaMoEConfig:
     num_experts_per_tok: int = 1
     moe_capacity_factor: int = 1
 
+    use_scattermoe: bool = True
     def __post_init__(self):
         # for backward compatibility
         if self.num_key_value_heads is None:
