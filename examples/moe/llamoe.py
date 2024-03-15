@@ -545,18 +545,11 @@ class LlaMoEDecoderLayer(nn.Module):
         )
 
         self.post_attention_layernorm = TritonRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
-        if False:
-            self.block_sparse_moe = dMoE(
-                config,
-                parallel_context=parallel_context,
-                parallel_config=parallel_config,
-            )
-        else:
-            self.block_sparse_moe = ScatterMoE(
-                config,
-                parallel_context=parallel_context,
-                parallel_config=parallel_config,
-            )
+        self.block_sparse_moe = ScatterMoE(
+            config,
+            parallel_context=parallel_context,
+            parallel_config=parallel_config,
+        )
 
 
     def forward(
