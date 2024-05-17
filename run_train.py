@@ -17,9 +17,10 @@ from nanotron.data.dataloader_builder import build_nanoset_dataloader
 from nanotron.dataloader import (
     clm_process,
     dummy_infinite_data_generator,
-    get_datasets,
     get_train_dataloader,
 )
+from custom_dataloader import get_datasets
+
 from nanotron.helpers import (
     compute_remain_train_steps_of_a_data_stage_from_ckp,
     get_consumed_train_samples_of_a_data_stage_from_ckp,
