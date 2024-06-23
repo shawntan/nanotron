@@ -209,6 +209,15 @@ class CoreAttention(nn.Module):
         # NOTE: this scale is for µTransfer,
         # in SP, we use sqrt(1/d_h)
         softmax_scale = 1 / query_states.shape[-1] if self.is_using_mup else None
+
+        log_rank(
+            repr(query_states.size()) + ", " + repr(cu_seqlens_q),
+            logger=logger,
+            level=logging.WARNING,
+            rank=0,
+        )
+
+
         attn_output = flash_attn_varlen_func(
             q=query_states,
             k=key_states,
@@ -865,6 +874,15 @@ class LlamaForTraining(NanotronModel):
     ):
         super().__init__()
         self.model = LlamaModel(config=config, parallel_context=parallel_context, parallel_config=parallel_config)
+
+        log_rank(
+            "LlamaForTraining init here.",
+            logger=logger,
+            level=logging.INFO,
+            rank=0,
+        )
+
+
         self.loss = PipelineBlock(
             p2p=self.model.p2p,
             module_builder=Loss,

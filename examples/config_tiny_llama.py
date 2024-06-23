@@ -27,13 +27,13 @@ model_config = LlamaConfig(
     bos_token_id=1,
     eos_token_id=2,
     hidden_act="silu",
-    hidden_size=16,
+    hidden_size=1024,
     initializer_range=0.02,
-    intermediate_size=64,
+    intermediate_size=2048,
     max_position_embeddings=SEQLEN,
-    num_attention_heads=4,
+    num_attention_heads=16,
     num_hidden_layers=2,
-    num_key_value_heads=4,
+    num_key_value_heads=16,
     pretraining_tp=1,
     rms_norm_eps=1e-05,
     rope_scaling=None,
@@ -81,7 +81,7 @@ parallelism = ParallelismArgs(
     tp_mode="REDUCE_SCATTER",
     tp_linear_async_communication=True,
 )
-tokens = TokensArgs(sequence_length=SEQLEN, train_steps=15, micro_batch_size=2, batch_accumulation_per_replica=1)
+tokens = TokensArgs(sequence_length=SEQLEN, train_steps=10000, micro_batch_size=4, batch_accumulation_per_replica=1)
 
 data_stages = [
     DatasetStageArgs(
