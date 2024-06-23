@@ -194,30 +194,39 @@ class CoreAttention(nn.Module):
         q_sequence_mask: torch.Tensor,  # torch.BoolTensor [batch_size, q_length] (can be broadcasted to that size)
         kv_sequence_mask: torch.Tensor,  # torch.BoolTensor [batch_size, kv_length] (can be broadcasted to that size)
     ):
-        from flash_attn.flash_attn_interface import flash_attn_varlen_func
-
+        # from flash_attn.flash_attn_interface import flash_attn_varlen_func
+        from sb_varlen import sb_flash_attn_varlen
+        import math
         # TODO @thomasw21: Compute once, instead of computing for each layers.
-        cu_seqlens_q = torch.zeros((q_sequence_mask.shape[0] + 1), dtype=torch.int32, device=query_states.device)
-        cu_seqlens_k = torch.zeros((kv_sequence_mask.shape[0] + 1), dtype=torch.int32, device=query_states.device)
-        torch.cumsum(q_sequence_mask.sum(-1, dtype=torch.int32), dim=0, dtype=torch.int32, out=cu_seqlens_q[1:])
-        torch.cumsum(kv_sequence_mask.sum(-1, dtype=torch.int32), dim=0, dtype=torch.int32, out=cu_seqlens_k[1:])
-
+        # cu_seqlens_q = torch.zeros((q_sequence_mask.shape[0] + 1), dtype=torch.int32, device=query_states.device)
+        # cu_seqlens_k = torch.zeros((kv_sequence_mask.shape[0] + 1), dtype=torch.int32, device=query_states.device)
+        # torch.cumsum(q_sequence_mask.sum(-1, dtype=torch.int32), dim=0, dtype=torch.int32, out=cu_seqlens_q[1:])
+        # torch.cumsum(kv_sequence_mask.sum(-1, dtype=torch.int32), dim=0, dtype=torch.int32, out=cu_seqlens_k[1:])
+        cu_seqlens = torch.cumsum(q_sequence_mask.sum(-1, dtype=torch.int32), dim=0, dtype=torch.int32)
         # TODO(kunhao): flash attn's causal means that the query can only attend to the keys before it. This is not
         # what we want if we are using kv cache. This is a hack as we always have q_length == 1 when using kv cache.
         causal = False if q_sequence_mask.shape[1] == 1 else True
 
         # NOTE: this scale is for µTransfer,
         # in SP, we use sqrt(1/d_h)
-        softmax_scale = 1 / query_states.shape[-1] if self.is_using_mup else None
+        # softmax_scale = 1 / query_states.shape[-1] if self.is_using_mup else None
+        sb_scale = 2 / query_states.shape[-1] if self.is_using_mup else None
 
         log_rank(
-            repr(query_states.size()) + ", " + repr(cu_seqlens_q),
+            repr(query_states.size()) + ", " + repr(cu_seqlens),
             logger=logger,
             level=logging.WARNING,
             rank=0,
         )
-
-
+        attn_output = sb_flash_attn_varlen(
+            q=query_states.permute(1, 0, 2),
+            k=key_states.permute(1, 0, 2),
+            v=value_states.permute(1, 0, 2),
+            cu_seqlens=cu_seqlens,
+            inv_temp=sb_scale,
+            zero_start=False
+        )
+        """
         attn_output = flash_attn_varlen_func(
             q=query_states,
             k=key_states,
@@ -231,6 +240,7 @@ class CoreAttention(nn.Module):
             causal=causal,
             return_attn_probs=False,
         )
+        """
 
         return attn_output
 
