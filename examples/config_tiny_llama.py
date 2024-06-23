@@ -20,6 +20,7 @@ from nanotron.config import (
     TokensArgs,
 )
 from nanotron.logging import human_format
+SEQLEN = 2048
 
 model_config = LlamaConfig(
     # Config for a tiny model model with 1.62M parameters
@@ -29,7 +30,7 @@ model_config = LlamaConfig(
     hidden_size=16,
     initializer_range=0.02,
     intermediate_size=64,
-    max_position_embeddings=256,
+    max_position_embeddings=SEQLEN,
     num_attention_heads=4,
     num_hidden_layers=2,
     num_key_value_heads=4,
@@ -38,7 +39,7 @@ model_config = LlamaConfig(
     rope_scaling=None,
     tie_word_embeddings=True,
     use_cache=True,
-    vocab_size=256,
+    vocab_size=32000,
 )
 
 num_params = human_format(
@@ -74,21 +75,20 @@ optimizer = OptimizerArgs(
 
 parallelism = ParallelismArgs(
     dp=2,
-    pp=2,
-    tp=2,
+    pp=1,
+    tp=4,
     pp_engine="1f1b",
     tp_mode="REDUCE_SCATTER",
     tp_linear_async_communication=True,
 )
-
-tokens = TokensArgs(sequence_length=256, train_steps=15, micro_batch_size=2, batch_accumulation_per_replica=1)
+tokens = TokensArgs(sequence_length=SEQLEN, train_steps=15, micro_batch_size=2, batch_accumulation_per_replica=1)
 
 data_stages = [
     DatasetStageArgs(
         name="Stable Training Stage",
         start_training_step=1,
         data=DataArgs(
-            dataset=PretrainDatasetsArgs(hf_dataset_or_datasets="stas/openwebtext-10k", text_column_name="text"),
+            dataset=PretrainDatasetsArgs(hf_dataset_or_datasets="vilm/RedPajama-v2-small", text_column_name="text"),
             seed=seed,
         ),
     ),
@@ -96,7 +96,7 @@ data_stages = [
         name="Annealing Phase",
         start_training_step=10,
         data=DataArgs(
-            dataset=PretrainDatasetsArgs(hf_dataset_or_datasets="stas/openwebtext-10k", text_column_name="text"),
+            dataset=PretrainDatasetsArgs(hf_dataset_or_datasets="vilm/RedPajama-v2-small", text_column_name="text"),
             seed=seed,
         ),
     ),
@@ -106,11 +106,11 @@ checkpoints_path = "./checkpoints"
 os.makedirs(checkpoints_path, exist_ok=True)
 
 config = Config(
-    general=GeneralArgs(project="debug", run="tiny_llama_%date_%jobid", seed=seed),
+    general=GeneralArgs(project="debug", run="tiny_llama_rpsmall_%date_%jobid", seed=seed),
     checkpoints=CheckpointsArgs(checkpoints_path=checkpoints_path, checkpoint_interval=10),
     parallelism=parallelism,
     model=ModelArgs(init_method=RandomInit(std=0.025), model_config=model_config),
-    tokenizer=TokenizerArgs("robot-test/dummy-tokenizer-wordlevel"),
+    tokenizer=TokenizerArgs("meta-llama/Llama-2-7b-hf"),
     optimizer=optimizer,
     logging=LoggingArgs(),
     tokens=tokens,
