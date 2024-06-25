@@ -29,11 +29,11 @@ model_config = LlamaConfig(
     hidden_act="silu",
     hidden_size=1024,
     initializer_range=0.02,
-    intermediate_size=2048,
+    intermediate_size=4096,
     max_position_embeddings=SEQLEN,
     num_attention_heads=16,
-    num_hidden_layers=2,
     num_key_value_heads=16,
+    num_hidden_layers=16,
     pretraining_tp=1,
     rms_norm_eps=1e-05,
     rope_scaling=None,
@@ -64,6 +64,7 @@ optimizer = OptimizerArgs(
     weight_decay=0.01,
     clip_grad=1.0,
     accumulate_grad_in_fp32=True,
+    torch_adam_is_fused=True,
     learning_rate_scheduler=learning_rate,
     optimizer_factory=AdamWOptimizerArgs(
         adam_eps=1e-08,
@@ -81,6 +82,7 @@ parallelism = ParallelismArgs(
     tp_mode="REDUCE_SCATTER",
     tp_linear_async_communication=True,
 )
+
 tokens = TokensArgs(sequence_length=SEQLEN, train_steps=10000, micro_batch_size=4, batch_accumulation_per_replica=1)
 
 data_stages = [
@@ -107,7 +109,7 @@ os.makedirs(checkpoints_path, exist_ok=True)
 
 config = Config(
     general=GeneralArgs(project="debug", run="tiny_llama_rpsmall_%date_%jobid", seed=seed),
-    checkpoints=CheckpointsArgs(checkpoints_path=checkpoints_path, checkpoint_interval=2000),
+    checkpoints=CheckpointsArgs(checkpoints_path=checkpoints_path, checkpoint_interval=2500),
     parallelism=parallelism,
     model=ModelArgs(init_method=RandomInit(std=0.025), model_config=model_config),
     tokenizer=TokenizerArgs("meta-llama/Llama-2-7b-hf"),
