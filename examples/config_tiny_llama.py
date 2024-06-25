@@ -83,7 +83,7 @@ parallelism = ParallelismArgs(
     tp_linear_async_communication=True,
 )
 
-tokens = TokensArgs(sequence_length=SEQLEN, train_steps=10000, micro_batch_size=4, batch_accumulation_per_replica=1)
+tokens = TokensArgs(sequence_length=SEQLEN, train_steps=1000000000, micro_batch_size=4, batch_accumulation_per_replica=1)
 
 data_stages = [
     DatasetStageArgs(
