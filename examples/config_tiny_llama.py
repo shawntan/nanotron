@@ -64,7 +64,6 @@ optimizer = OptimizerArgs(
     weight_decay=0.01,
     clip_grad=1.0,
     accumulate_grad_in_fp32=True,
-    torch_adam_is_fused=True,
     learning_rate_scheduler=learning_rate,
     optimizer_factory=AdamWOptimizerArgs(
         adam_eps=1e-08,
@@ -83,7 +82,7 @@ parallelism = ParallelismArgs(
     tp_linear_async_communication=True,
 )
 
-tokens = TokensArgs(sequence_length=SEQLEN, train_steps=1000000000, micro_batch_size=4, batch_accumulation_per_replica=1)
+tokens = TokensArgs(sequence_length=SEQLEN, train_steps=39955, micro_batch_size=4, batch_accumulation_per_replica=1)
 
 data_stages = [
     DatasetStageArgs(
